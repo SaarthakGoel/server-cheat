@@ -3,10 +3,10 @@ import mongoose from "mongoose";
 
 const roomSchema = new mongoose.Schema({
   roomId : Number,
-  users : {
+  users : [{
     name : String,
     socketId : String
-  },
+  }],
   playerNo : Number,
   decks : Number,
 })
