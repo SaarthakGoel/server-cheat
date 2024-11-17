@@ -7,7 +7,7 @@ import { configDotenv } from "dotenv";
 import corsOptions from "./config/corsConfig.js";
 import cors from 'cors';
 import { Server } from "socket.io";
-import socketHandler from "./socketio/roomLogic.js";
+import socketHandler from "./socketio/ioConnection.js";
 
 
 configDotenv();

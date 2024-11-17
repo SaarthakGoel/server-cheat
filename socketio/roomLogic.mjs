@@ -1,9 +1,6 @@
 import Room from "../modals/RoomModel.mjs"
 
-export default function socketHandler(io) {
-
-  io.on('connection', (socket) => {
-    console.log(`user connected`, socket.id)
+export default function roomLogic(socket , io) {
 
     socket.on('createRoom', async ({ name, room, players, decks }) => {
       console.log(`room created`, name, room, players, decks)
@@ -25,8 +22,8 @@ export default function socketHandler(io) {
       const result = await newRoom.save();
 
       socket.emit('roomCreated')
-
-      socket.join(room)
+      socket.join(room);
+      io.to(room).emit('playerJoined' , {playerName : [name]})
     })
 
     socket.on('joinRoom', async ({ name, room }) => {
@@ -56,6 +53,8 @@ export default function socketHandler(io) {
           const numDecks = findroom.decks;
           socket.emit('roomJoined', { name: name, roomName: roomName, numPlayers: numPlayers, numDecks: numDecks })
           socket.join(room);
+          const playerName = findroom.users.map((user) => user.name);
+          io.to(room).emit('playerJoined' , {playerName})
           console.log(`room Joined`, name, room);
           return;
         }
@@ -72,6 +71,9 @@ export default function socketHandler(io) {
         const numDecks = findroom.decks;
         socket.emit('roomJoined', { name: name, roomName: roomName, numPlayers: numPlayers, numDecks: numDecks })
         socket.join(room);
+        const playerName = findroom.users.map((user) => user.name);
+        io.to(room).emit('playerJoined' , {playerName})
+        io.to(findroom.users[0].socketId).emit('playerJoined' , {playerName});
         console.log(`room Joined`, name, room);
       }
     })
@@ -88,6 +90,4 @@ export default function socketHandler(io) {
         }
       }
     })
-  })
-
 }
