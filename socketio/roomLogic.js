@@ -17,7 +17,7 @@ export default function socketHandler(io) {
 
       const newRoom = new Room({
         roomId: room,
-        users: [{ name: name, socketId: socket.id }],
+        users: [{ name: name, socketId: socket.id , host : true }],
         playerNo: players,
         decks: decks
       })
@@ -45,7 +45,11 @@ export default function socketHandler(io) {
 
         if (userExists) {
           findroom.users = findroom.users.filter((user) => user.socketId !== socket.id);
-          findroom.users.push({ name: name, socketId: socket.id });
+          if(userExists.host === true){
+            findroom.users.push({ name: name, socketId: socket.id , host : true });
+          }else{
+            findroom.users.push({ name: name, socketId: socket.id , host : false });
+          }
           const res = await findroom.save();
           const roomName = room;
           const numPlayers = findroom.playerNo;
@@ -61,7 +65,7 @@ export default function socketHandler(io) {
       }
 
       if (findroom) {
-        findroom.users.push({ name: name, socketId: socket.id });
+        findroom.users.push({ name: name, socketId: socket.id , host : false });
         const res = await findroom.save();
         const roomName = room;
         const numPlayers = findroom.playerNo;

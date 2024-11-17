@@ -5,7 +5,8 @@ const roomSchema = new mongoose.Schema({
   roomId : Number,
   users : [{
     name : String,
-    socketId : String
+    socketId : String,
+    host : Boolean
   }],
   playerNo : Number,
   decks : Number,
