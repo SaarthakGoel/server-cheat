@@ -5,10 +5,9 @@ const gameDataSchema = new mongoose.Schema({
   players : [{
     playerName : String,
     cardQuantity : Number,
+    cards : [String],
     socketId : String 
   }],
-
-  MyCards : [String],
 
   turn : String,
   prev : String,

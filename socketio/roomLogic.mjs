@@ -78,19 +78,6 @@ export default function roomLogic(socket, io) {
     }
   })
 
-  /*socket.on('disconnect', async () => {
-    console.log(`user`, socket.id, `disconnected`)
-    const foundRoom = await Room.findOne({ 'users.socketId': socket.id })
-    if (foundRoom) {
-      if (foundRoom.users.length === 1) {
-        await Room.findOneAndDelete({ roomId: foundRoom.roomId })
-      } else {
-        foundRoom.users = foundRoom.users.filter((user) => user.socketId !== socket.id);
-        await foundRoom.save();
-      }
-    }
-  })*/
-
   socket.on('disconnect', async () => {
     console.log(`User ${socket.id} disconnected`);
 
