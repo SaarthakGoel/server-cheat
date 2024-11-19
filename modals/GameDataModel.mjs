@@ -8,7 +8,7 @@ const gameDataSchema = new mongoose.Schema({
     cards : [String],
     socketId : String 
   }],
-
+  roomId : String,
   turn : String,
   prev : String,
   skip : [Boolean],

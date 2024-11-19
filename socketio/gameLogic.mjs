@@ -74,6 +74,7 @@ export default function gameLogic(socket, io) {
 
     const gameData = new GameData({
       players: players,
+      roomId : currRoom,
       turn: socket.id,
       prev: null,
       skip: skip,
@@ -86,6 +87,61 @@ export default function gameLogic(socket, io) {
     const result = await gameData.save();
 
     io.to(currRoom).emit('gameStarted', { players, turn: socket.id, skip })
+  });
+
+
+
+
+  socket.on('FaceChancePlayed' , async ({currSocketId , currRoom , selectedCards , currFace}) => {
+    console.log(currSocketId , currRoom , selectedCards , currFace)
+
+    const foundGameData = await GameData.findOne({roomId : currRoom});
+
+    if(!foundGameData) {
+      console.log(`game not started in ${currRoom}`);
+      return;
+    }
+
+    foundGameData.players.forEach((player) => {
+      if(player.socketId === currSocketId){
+        player.cardQuantity = player.cardQuantity - selectedCards.length;
+        player.cards = player.cards.filter((card) => !selectedCards.includes(card) );
+      }
+    });
+
+    foundGameData.cardsInLastChance = selectedCards;
+    if(foundGameData.cardsInMiddle === null){
+      foundGameData.cardsInMiddle = selectedCards;
+    }else{
+      foundGameData.cardsInMiddle = [...foundGameData.cardsInMiddle , ...selectedCards];
+    }
+    foundGameData.prev = currSocketId;
+    foundGameData.currentFace = currFace;
+
+    const currentPlayerIndex = foundGameData.players.findIndex((player) => player.socketId === currSocketId);
+    if(currentPlayerIndex === -1){
+      console.log(`Current player not found in players array`);
+      return;
+    }
+
+    let nextPlayerIndex = (currentPlayerIndex + 1)% foundGameData.players.length;
+
+    foundGameData.turn = foundGameData.players[nextPlayerIndex].socketId;
+
+    const res = await foundGameData.save();
+
+    io.to(currRoom).emit('FaceChanceDone' , {
+      players : foundGameData.players,
+      turn : foundGameData.turn,
+      cardsInMiddle : foundGameData.cardsInMiddle,
+      cardsInLastChance : foundGameData.cardsInLastChance,
+      prev : foundGameData.prev,
+      currentFace : currFace
+    })
   })
+
+
+
+
 
 }
