@@ -1,5 +1,6 @@
 import GameData from "../modals/GameDataModel.mjs";
 import Room from "../modals/RoomModel.mjs";
+import { findFaceName } from "../utils/findFaceName.mjs";
 
 
 export default function gameLogic(socket, io) {
@@ -86,8 +87,15 @@ export default function gameLogic(socket, io) {
 
     const result = await gameData.save();
 
-    io.to(currRoom).emit('gameStarted', { players, turn: socket.id, skip })
+    const mainMessage = "Game Started 😊"
+
+    io.to(currRoom).emit('gameStarted', { players, turn: socket.id, skip , mainMessage : mainMessage})
   });
+
+
+
+
+
 
 
 
@@ -130,15 +138,23 @@ export default function gameLogic(socket, io) {
 
     const res = await foundGameData.save();
 
+    //message logic
+    const mainMessage = `${foundGameData.players[currentPlayerIndex].playerName} threw ${selectedCards.length} ${findFaceName(currFace)}`;
+
     io.to(currRoom).emit('FaceChanceDone', {
       players: foundGameData.players,
       turn: foundGameData.turn,
       cardsInMiddle: foundGameData.cardsInMiddle,
       cardsInLastChance: foundGameData.cardsInLastChance,
       prev: foundGameData.prev,
-      currentFace: currFace
+      currentFace: currFace,
+      mainMessage : mainMessage
     })
   })
+
+
+
+
 
 
 
@@ -188,7 +204,7 @@ export default function gameLogic(socket, io) {
     while (foundGameData.won[nextPlayerIndex]) {
       nextPlayerIndex = (nextPlayerIndex + 1) % foundGameData.players.length;
       if(nextPlayerIndex === currentPlayerIndex){
-        console.log('we have a loser')
+        console.log('we have a loser 1')
         return ;
       }
     }
@@ -197,16 +213,25 @@ export default function gameLogic(socket, io) {
 
     const res = await foundGameData.save();
 
+    //message logic
+    const mainMessage = `${foundGameData.players[currentPlayerIndex].playerName} threw ${selectedCards.length} ${findFaceName(foundGameData.currentFace)}`;
+
     io.to(currRoom).emit('throwChanceDone', {
       players: foundGameData.players,
       turn: foundGameData.turn,
       cardsInMiddle: foundGameData.cardsInMiddle,
       cardsInLastChance: foundGameData.cardsInLastChance,
       prev: foundGameData.prev,
-      won: foundGameData.won
+      won: foundGameData.won,
+      mainMessage : mainMessage
     })
 
   })
+
+
+
+
+
 
 
 
@@ -228,7 +253,7 @@ export default function gameLogic(socket, io) {
       while (foundGameData.won[nextPlayerIndex]) {
         nextPlayerIndex = (nextPlayerIndex + 1) % foundGameData.players.length;
         if(nextPlayerIndex === currentPlayerIndex){
-          console.log('we have a loser')
+          console.log('we have a loser 2')
           return ;
         }
       }
@@ -256,7 +281,7 @@ export default function gameLogic(socket, io) {
       while (foundGameData.won[nextPlayerIndex]) {
         nextPlayerIndex = (nextPlayerIndex + 1) % foundGameData.players.length;
         if(nextPlayerIndex === currentPlayerIndex){
-          console.log('we have a loser')
+          console.log('we have a loser 3')
           return ;
         }
       }
@@ -264,15 +289,26 @@ export default function gameLogic(socket, io) {
 
       const res = await foundGameData.save();
 
-      io.to(currRoom).emit('chanceSkipped', { turn: foundGameData.turn , skip : foundGameData.skip });
+      const mainMessage = `${foundGameData.players[currentPlayerIndex].playerName} has skipped`;
+
+      io.to(currRoom).emit('chanceSkipped', { turn: foundGameData.turn , skip : foundGameData.skip , mainMessage : mainMessage });
     }
 
   })
 
 
-  socket.on('doubtChance' , ({currRoom}) => {
-    console.log( "doubtemitted" , currRoom)
-    io.to(currRoom).emit('doubleChosen');
+
+
+
+
+
+  socket.on('doubtChance' , async({currRoom}) => {
+    console.log( "doubtemitted" , currRoom);
+    const foundGameData = await GameData.findOne({roomId : currRoom});
+    const currentPlayer = foundGameData.players.find((player) => player.socketId === foundGameData.turn);
+    const prevPlayer = foundGameData.players.find((player) => player.socketId === foundGameData.prev);
+    const mainMessage = `${currentPlayer.playerName} has doubted ${prevPlayer.playerName}`;
+    io.to(currRoom).emit('doubleChosen' , {mainMessage});
    })
 
 
@@ -286,6 +322,8 @@ export default function gameLogic(socket, io) {
 socket.on('handleDoubtLogic', async ({ openCard, currRoom, currSocketId }) => {
   const foundGameData = await GameData.findOne({ roomId: currRoom });
 
+  const prevPlayer = foundGameData.players.find((player => player.socketId === foundGameData.prev));
+
   if (foundGameData.currentFace === openCard[0]) {
     const currentPlayerIndex = foundGameData.players.findIndex(
       (player) => player.socketId === currSocketId
@@ -297,12 +335,13 @@ socket.on('handleDoubtLogic', async ({ openCard, currRoom, currSocketId }) => {
       ...foundGameData.players[currentPlayerIndex].cards,
       ...foundGameData.cardsInMiddle,
     ];
+    newCards.sort((a , b) => a.localeCompare(b));
 
     let nextPlayerIndex = (currentPlayerIndex + 1) % foundGameData.players.length;
     while (foundGameData.won[nextPlayerIndex]) {
       nextPlayerIndex = (nextPlayerIndex + 1) % foundGameData.players.length;
       if (nextPlayerIndex === currentPlayerIndex) {
-        console.log('We have a loser'); 
+        console.log('We have a loser 4'); 
         return;
       }
     }
@@ -329,6 +368,8 @@ socket.on('handleDoubtLogic', async ({ openCard, currRoom, currSocketId }) => {
       }
     );
 
+    const mainMessage = `Wrong Call ! , ${prevPlayer.playerName} was truthful `;
+
     io.to(currRoom).emit('doubtLogicDone', {
       players: res.players,
       turn: res.turn,
@@ -337,6 +378,7 @@ socket.on('handleDoubtLogic', async ({ openCard, currRoom, currSocketId }) => {
       currentFace: res.currentFace,
       cardsInMiddle: res.cardsInMiddle,
       cardsInLastChance: res.cardsInLastChance,
+      mainMessage : mainMessage
     });
   } else {
     const prevPlayerIndex = foundGameData.players.findIndex(
@@ -352,6 +394,7 @@ socket.on('handleDoubtLogic', async ({ openCard, currRoom, currSocketId }) => {
       ...foundGameData.players[prevPlayerIndex].cards,
       ...foundGameData.cardsInMiddle,
     ];
+    newCards.sort((a , b) => a.localeCompare(b));
 
     const newSkip = foundGameData.players.map(() => 0);
 
@@ -374,6 +417,7 @@ socket.on('handleDoubtLogic', async ({ openCard, currRoom, currSocketId }) => {
         new: true,
       }
     );
+    const mainMessage = `Good Call ! , ${prevPlayer.playerName} was lying`;
 
     io.to(currRoom).emit('doubtLogicDone', {
       players: res.players,
@@ -383,6 +427,7 @@ socket.on('handleDoubtLogic', async ({ openCard, currRoom, currSocketId }) => {
       currentFace: res.currentFace,
       cardsInMiddle: res.cardsInMiddle, 
       cardsInLastChance: res.cardsInLastChance,
+      mainMessage : mainMessage
     });
   }
 });

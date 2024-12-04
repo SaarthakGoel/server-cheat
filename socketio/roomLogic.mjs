@@ -1,3 +1,4 @@
+import GameData from "../modals/GameDataModel.mjs";
 import Room from "../modals/RoomModel.mjs"
 
 export default function roomLogic(socket, io) {
@@ -33,6 +34,12 @@ export default function roomLogic(socket, io) {
 
     if (!findroom) {
       socket.emit('roomNotExist', { message: "Room Does Not Exist" })
+      return;
+    }
+
+    const duplicateName = findroom.users.find((user) => user.name === name);
+    if(duplicateName){
+      socket.emit('duplicateName', { message: "Name already being used in room" })
       return;
     }
 
@@ -85,8 +92,12 @@ export default function roomLogic(socket, io) {
     const foundRoom = await Room.findOne({ 'users.socketId': socket.id });
 
     if (foundRoom) {
-      // If the room has only one user, delete the room
+      // If the room has only one user, delete the room and the game (if it exists)
       if (foundRoom.users.length === 1) {
+        const foundGameData = await GameData.findOne({roomId : foundRoom.roomId});
+        if(foundGameData){
+          await GameData.findOneAndDelete({roomId : foundRoom.roomId});
+        }
         await Room.findOneAndDelete({ roomId: foundRoom.roomId });
         console.log(`Room ${foundRoom.roomId} deleted as it was empty.`);
         return;
