@@ -50,7 +50,7 @@ export default function gameLogic(socket, io) {
         allCards.splice(randomIndex, 1); // Remove the selected card from the array
       }
 
-      return selectedCards.sort((a , b) => a.localeCompare(b));
+      return selectedCards.sort((a, b) => a.localeCompare(b));
     }
 
     const players = foundRoom.users.map((user, index) => {
@@ -89,7 +89,7 @@ export default function gameLogic(socket, io) {
 
     const mainMessage = "Game Started 😊"
 
-    io.to(currRoom).emit('gameStarted', { players, turn: socket.id, skip , mainMessage : mainMessage})
+    io.to(currRoom).emit('gameStarted', { players, turn: socket.id, skip, mainMessage: mainMessage })
   });
 
 
@@ -133,6 +133,9 @@ export default function gameLogic(socket, io) {
     }
 
     let nextPlayerIndex = (currentPlayerIndex + 1) % foundGameData.players.length;
+    while (foundGameData.won[nextPlayerIndex] > 0) {
+      nextPlayerIndex = (nextPlayerIndex + 1) % foundGameData.players.length;
+    }
 
     foundGameData.turn = foundGameData.players[nextPlayerIndex].socketId;
 
@@ -148,7 +151,7 @@ export default function gameLogic(socket, io) {
       cardsInLastChance: foundGameData.cardsInLastChance,
       prev: foundGameData.prev,
       currentFace: currFace,
-      mainMessage : mainMessage
+      mainMessage: mainMessage
     })
   })
 
@@ -188,18 +191,12 @@ export default function gameLogic(socket, io) {
       return;
     }
 
-    const prevPlayerIndex = foundGameData.players.findIndex((player) => player.socketId === foundGameData.prev)
-
     foundGameData.prev = currSocketId;
 
     let nextPlayerIndex = (currentPlayerIndex + 1) % foundGameData.players.length;
 
-    while (foundGameData.won[nextPlayerIndex]) {
+    while (foundGameData.won[nextPlayerIndex] > 0) {
       nextPlayerIndex = (nextPlayerIndex + 1) % foundGameData.players.length;
-      if(nextPlayerIndex === currentPlayerIndex){
-        console.log('we have a loser 1')
-        return ;
-      }
     }
 
     foundGameData.turn = foundGameData.players[nextPlayerIndex].socketId;
@@ -216,7 +213,7 @@ export default function gameLogic(socket, io) {
       cardsInLastChance: foundGameData.cardsInLastChance,
       prev: foundGameData.prev,
       won: foundGameData.won,
-      mainMessage : mainMessage
+      mainMessage: mainMessage
     })
 
   })
@@ -245,14 +242,14 @@ export default function gameLogic(socket, io) {
       let nextPlayerIndex = (currentPlayerIndex + 1) % foundGameData.players.length;
       while (foundGameData.won[nextPlayerIndex]) {
         nextPlayerIndex = (nextPlayerIndex + 1) % foundGameData.players.length;
-        if(nextPlayerIndex === currentPlayerIndex){
+        if (nextPlayerIndex === currentPlayerIndex) {
           console.log('we have a loser 2')
-          return ;
+          return;
         }
       }
       foundGameData.turn = foundGameData.players[nextPlayerIndex].socketId;
       foundGameData.prev = null;
-      foundGameData.skip = foundGameData.won.map((x) => x>=1);
+      foundGameData.skip = foundGameData.won.map((x) => x >= 1);
       foundGameData.currentFace = null;
       foundGameData.cardsInMiddle = [];
       foundGameData.cardsInLastChance = [];
@@ -261,18 +258,19 @@ export default function gameLogic(socket, io) {
         turn: foundGameData.turn,
         prev: foundGameData.prev,
         skip: foundGameData.skip,
+        won: foundGameData.won,
         currentFace: foundGameData.currentFace,
         cardsInMiddle: foundGameData.cardsInMiddle,
         cardsInLastChance: foundGameData.cardsInLastChance
       });
     } else {
       let nextPlayerIndex = (currentPlayerIndex + 1) % foundGameData.players.length;
-  
+
       while (foundGameData.won[nextPlayerIndex]) {
         nextPlayerIndex = (nextPlayerIndex + 1) % foundGameData.players.length;
-        if(nextPlayerIndex === currentPlayerIndex){
+        if (nextPlayerIndex === currentPlayerIndex) {
           console.log('we have a loser 3')
-          return ;
+          return;
         }
       }
       foundGameData.turn = foundGameData.players[nextPlayerIndex].socketId;
@@ -281,7 +279,7 @@ export default function gameLogic(socket, io) {
 
       const mainMessage = `${foundGameData.players[currentPlayerIndex].playerName} has skipped`;
 
-      io.to(currRoom).emit('chanceSkipped', { turn: foundGameData.turn , skip : foundGameData.skip , mainMessage : mainMessage });
+      io.to(currRoom).emit('chanceSkipped', { turn: foundGameData.turn, skip: foundGameData.skip, mainMessage: mainMessage });
     }
 
   })
@@ -292,194 +290,205 @@ export default function gameLogic(socket, io) {
 
 
 
-  socket.on('doubtChance' , async({currRoom}) => {
-    console.log( "doubtemitted" , currRoom);
-    const foundGameData = await GameData.findOne({roomId : currRoom});
+  socket.on('doubtChance', async ({ currRoom }) => {
+    console.log("doubtemitted", currRoom);
+    const foundGameData = await GameData.findOne({ roomId: currRoom });
     const currentPlayer = foundGameData.players.find((player) => player.socketId === foundGameData.turn);
     const prevPlayer = foundGameData.players.find((player) => player.socketId === foundGameData.prev);
     const mainMessage = `${currentPlayer.playerName} has doubted ${prevPlayer.playerName}`;
-    io.to(currRoom).emit('doubleChosen' , {mainMessage});
-   })
+    io.to(currRoom).emit('doubleChosen', { mainMessage });
+  })
 
 
-   socket.on('cardFlipped' , ({currRoom , item}) => {
-     io.to(currRoom).emit('cardFlipComplete' , {item});
-   })
+  socket.on('cardFlipped', ({ currRoom, item }) => {
+    io.to(currRoom).emit('cardFlipComplete', { item });
+  })
 
 
-   
 
-socket.on('handleDoubtLogic', async ({ openCard, currRoom, currSocketId }) => {
-  const foundGameData = await GameData.findOne({ roomId: currRoom });
 
-  const prevPlayer = foundGameData.players.find((player => player.socketId === foundGameData.prev));
+  socket.on('handleDoubtLogic', async ({ openCard, currRoom, currSocketId }) => {
+    const foundGameData = await GameData.findOne({ roomId: currRoom });
 
-  if (foundGameData.currentFace === openCard[0]) {
-    const currentPlayerIndex = foundGameData.players.findIndex(
-      (player) => player.socketId === currSocketId
-    );
-    const newQuantity =
-      foundGameData.players[currentPlayerIndex].cardQuantity +
-      foundGameData.cardsInMiddle.length;
-    const newCards = [
-      ...foundGameData.players[currentPlayerIndex].cards,
-      ...foundGameData.cardsInMiddle,
-    ];
-    newCards.sort((a , b) => a.localeCompare(b));
+    const prevPlayer = foundGameData.players.find((player => player.socketId === foundGameData.prev));
+
+    if (foundGameData.currentFace === openCard[0]) {
+      const currentPlayerIndex = foundGameData.players.findIndex(
+        (player) => player.socketId === currSocketId
+      );
+      const newQuantity =
+        foundGameData.players[currentPlayerIndex].cardQuantity +
+        foundGameData.cardsInMiddle.length;
+      const newCards = [
+        ...foundGameData.players[currentPlayerIndex].cards,
+        ...foundGameData.cardsInMiddle,
+      ];
+      newCards.sort((a, b) => a.localeCompare(b));
+
+      let nextPlayerIndex = (currentPlayerIndex + 1) % foundGameData.players.length;
+      while (foundGameData.won[nextPlayerIndex]) {
+        nextPlayerIndex = (nextPlayerIndex + 1) % foundGameData.players.length;
+        if (nextPlayerIndex === currentPlayerIndex) {
+          console.log('We have a loser 4');
+          return;
+        }
+      }
+      const newTurn = foundGameData.players[nextPlayerIndex].socketId;
+      const newWon = foundGameData.players.map((player) => {
+        if (player.cardQuantity === 0) {
+          return 1;
+        } else {
+          return 0;
+        }
+      })
+      const newSkip = foundGameData.won.map((x) => x === 1);
+
+      const res = await GameData.findOneAndUpdate(
+        { roomId: currRoom },
+        {
+          $set: {
+            "players.$[currentPlayer].cardQuantity": newQuantity,
+            "players.$[currentPlayer].cards": newCards,
+            turn: newTurn,
+            prev: null,
+            skip: newSkip,
+            won: newWon,
+            currentFace: null,
+            cardsInMiddle: [],
+            cardsInLastChance: [],
+          },
+        },
+        {
+          arrayFilters: [{ "currentPlayer.socketId": currSocketId }],
+          new: true,
+        }
+      );
+
+      const mainMessage = `Wrong Call ! , ${prevPlayer.playerName} was truthful `;
+
+      io.to(currRoom).emit('doubtLogicDone', {
+        players: res.players,
+        turn: res.turn,
+        prev: res.prev,
+        skip: res.skip,
+        won: res.won,
+        currentFace: res.currentFace,
+        cardsInMiddle: res.cardsInMiddle,
+        cardsInLastChance: res.cardsInLastChance,
+        mainMessage: mainMessage
+      });
+    } else {
+      const prevPlayerIndex = foundGameData.players.findIndex(
+        (player) => player.socketId === foundGameData.prev
+      );
+
+      console.log(prevPlayerIndex, foundGameData.players[prevPlayerIndex]);
+
+      const newQuantity =
+        foundGameData.players[prevPlayerIndex]?.cardQuantity +
+        foundGameData.cardsInMiddle.length;
+      const newCards = [
+        ...foundGameData.players[prevPlayerIndex].cards,
+        ...foundGameData.cardsInMiddle,
+      ];
+      newCards.sort((a, b) => a.localeCompare(b));
+
+      const newWon = foundGameData.players.map((player) => {
+        if (player.cardQuantity === 0) {
+          return 1;
+        } else {
+          return 0;
+        }
+      })
+      const newSkip = foundGameData.won.map((x) => x === 1);
+
+      const res = await GameData.findOneAndUpdate(
+        { roomId: currRoom },
+        {
+          $set: {
+            "players.$[prevPlayer].cardQuantity": newQuantity,
+            "players.$[prevPlayer].cards": newCards,
+            turn: currSocketId,
+            prev: null,
+            skip: newSkip,
+            won: newWon,
+            currentFace: null,
+            cardsInMiddle: [],
+            cardsInLastChance: [],
+          },
+        },
+        {
+          arrayFilters: [{ "prevPlayer.socketId": foundGameData.prev }],
+          new: true,
+        }
+      );
+      const mainMessage = `Good Call ! , ${prevPlayer.playerName} was lying`;
+
+      io.to(currRoom).emit('doubtLogicDone', {
+        players: res.players,
+        turn: res.turn,
+        prev: res.prev,
+        skip: res.skip,
+        won: res.won,
+        currentFace: res.currentFace,
+        cardsInMiddle: res.cardsInMiddle,
+        cardsInLastChance: res.cardsInLastChance,
+        mainMessage: mainMessage
+      });
+    }
+  });
+
+
+
+
+
+
+  socket.on('iwon', async ({ currSocketId, currRoom }) => {
+
+    const foundGameData = await GameData.findOne({ roomId: currRoom });
+
+    const currentPlayerIndex = foundGameData.players.findIndex((player) => player.socketId === currSocketId);
+
+    foundGameData.skip[currentPlayerIndex] = 1;
+    const maxWonValue = Math.max(...foundGameData.won.map((val) => Number(val) || 0));
+    foundGameData.won[currentPlayerIndex] = maxWonValue + 1;
 
     let nextPlayerIndex = (currentPlayerIndex + 1) % foundGameData.players.length;
     while (foundGameData.won[nextPlayerIndex]) {
       nextPlayerIndex = (nextPlayerIndex + 1) % foundGameData.players.length;
-      if (nextPlayerIndex === currentPlayerIndex) {
-        console.log('We have a loser 4'); 
-        return;
-      }
     }
-    const newTurn = foundGameData.players[nextPlayerIndex].socketId;
-    const newWon = foundGameData.players.map((player) => {
-      if(player.cardQuantity === 0){
-        return 1;
-      }else{
-        return 0;
-      }
-    })
-    const newSkip = foundGameData.won.map((x) => x===1);
 
-    const res = await GameData.findOneAndUpdate(
-      { roomId: currRoom },
-      {
-        $set: {
-          "players.$[currentPlayer].cardQuantity": newQuantity,
-          "players.$[currentPlayer].cards": newCards,
-          turn: newTurn,
-          prev: null,
-          skip: newSkip,
-          won : newWon,
-          currentFace: null,
-          cardsInMiddle: [],
-          cardsInLastChance: [],
-        },
-      },
-      {
-        arrayFilters: [{ "currentPlayer.socketId": currSocketId }],
-        new: true,
-      }
-    );
+    foundGameData.turn = foundGameData.players[nextPlayerIndex].socketId;
+    foundGameData.prev = null;
+    foundGameData.skip = foundGameData.won.map((x) => x >= 1);
+    foundGameData.currentFace = null;
+    foundGameData.cardsInMiddle = [];
+    foundGameData.cardsInLastChance = [];
 
-    const mainMessage = `Wrong Call ! , ${prevPlayer.playerName} was truthful `;
-
-    io.to(currRoom).emit('doubtLogicDone', {
-      players: res.players,
-      turn: res.turn,
-      prev: res.prev,
-      skip: res.skip,
-      won : res.won,
-      currentFace: res.currentFace,
-      cardsInMiddle: res.cardsInMiddle,
-      cardsInLastChance: res.cardsInLastChance,
-      mainMessage : mainMessage
-    });
-  } else {
-    const prevPlayerIndex = foundGameData.players.findIndex(
-      (player) => player.socketId === foundGameData.prev
-    );
-
-    console.log(prevPlayerIndex , foundGameData.players[prevPlayerIndex]);
-
-    const newQuantity =
-      foundGameData.players[prevPlayerIndex]?.cardQuantity +
-      foundGameData.cardsInMiddle.length;
-    const newCards = [
-      ...foundGameData.players[prevPlayerIndex].cards,
-      ...foundGameData.cardsInMiddle,
-    ];
-    newCards.sort((a , b) => a.localeCompare(b));
-
-    const newWon = foundGameData.players.map((player) => {
-      if(player.cardQuantity === 0){
-        return 1;
-      }else{
-        return 0;
-      }
-    })
-    const newSkip = foundGameData.won.map((x) => x===1);
-
-    const res = await GameData.findOneAndUpdate( 
-      { roomId: currRoom },
-      {
-        $set: {
-          "players.$[prevPlayer].cardQuantity": newQuantity,
-          "players.$[prevPlayer].cards": newCards,
-          turn: currSocketId,
-          prev: null,
-          skip: newSkip,
-          won : newWon,
-          currentFace: null,
-          cardsInMiddle: [],
-          cardsInLastChance: [],
-        },
-      },
-      {
-        arrayFilters: [{ "prevPlayer.socketId": foundGameData.prev }],
-        new: true,
-      }
-    );
-    const mainMessage = `Good Call ! , ${prevPlayer.playerName} was lying`;
-
-    io.to(currRoom).emit('doubtLogicDone', {
-      players: res.players,
-      turn: res.turn,
-      prev: res.prev,
-      skip: res.skip,
-      won : res.won,
-      currentFace: res.currentFace,
-      cardsInMiddle: res.cardsInMiddle, 
-      cardsInLastChance: res.cardsInLastChance,
-      mainMessage : mainMessage
-    });
-  }
-});
-
-
-
-
-
-
-socket.on('iwon' , async({currSocketId  , currRoom}) => {
-
-   const foundGameData = await GameData.findOne({roomId : currRoom});
- 
-   const currentPlayerIndex = foundGameData.players.findIndex((player) => player.socketId === currSocketId);
-
-   foundGameData.skip[currentPlayerIndex] = 1;
-   const maxWonValue = Math.max(...foundGameData.won.map((val) => Number(val) || 0));
-   foundGameData.won[currentPlayerIndex] = maxWonValue + 1;
-
-
-   let nextPlayerIndex = (currentPlayerIndex + 1) % foundGameData.players.length;
-      while (foundGameData.won[nextPlayerIndex]) {
-        nextPlayerIndex = (nextPlayerIndex + 1) % foundGameData.players.length;
-        if(nextPlayerIndex === currentPlayerIndex){
-          console.log('we have a loser 2')
-          return ;
+    if(foundGameData.won.filter((x) => x === 0).length === 1){
+      const rankData = foundGameData.players.map((player , index) => {
+        if(foundGameData.won[index] === 0){
+          foundGameData.won[index] = foundGameData.players.length;
         }
-      }
-      foundGameData.turn = foundGameData.players[nextPlayerIndex].socketId;
-      foundGameData.prev = null;
-      foundGameData.skip = foundGameData.won.map((x) => x>=1);
-      foundGameData.currentFace = null;
-      foundGameData.cardsInMiddle = [];
-      foundGameData.cardsInLastChance = [];
-      const res = await foundGameData.save();
-      io.to(currRoom).emit('roundOver', {
-        turn: foundGameData.turn,
-        prev: foundGameData.prev,
-        skip: foundGameData.skip,
-        currentFace: foundGameData.currentFace,
-        cardsInMiddle: foundGameData.cardsInMiddle,
-        cardsInLastChance: foundGameData.cardsInLastChance
-      });
-})
+        return {name : player.playerName , rank : foundGameData.won[index]}
+      })
+      rankData.sort((a,b) => a.rank - b.rank);
+      console.log('ranking sent')
+      io.to(currRoom).emit('GameOver' , {rankData});
+    }
+
+    const res = await foundGameData.save();
+
+    io.to(currRoom).emit('roundOver', {
+      turn: foundGameData.turn,
+      prev: foundGameData.prev,
+      skip: foundGameData.skip,
+      won: foundGameData.won,
+      currentFace: foundGameData.currentFace,
+      cardsInMiddle: foundGameData.cardsInMiddle,
+      cardsInLastChance: foundGameData.cardsInLastChance
+    });
+  })
 
 
 }
