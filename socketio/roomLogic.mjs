@@ -61,7 +61,9 @@ export default function roomLogic(socket, io) {
         socket.emit('roomJoined', { name: name, roomName: roomName, numPlayers: numPlayers, numDecks: numDecks })
         socket.join(room);
         const playerName = findroom.users.map((user) => user.name);
-        io.to(Number(room)).emit('playerJoined', { playerName })
+        setTimeout(() => {
+          io.to(Number(room)).emit('playerJoined', { playerName })
+        },1000)
         console.log(`room Joined`, name, room);
         return;
       }
@@ -79,8 +81,10 @@ export default function roomLogic(socket, io) {
       socket.emit('roomJoined', { name: name, roomName: roomName, numPlayers: numPlayers, numDecks: numDecks })
       socket.join(Number(room));
       const playerName = findroom.users.map((user) => user.name);
-      io.to(Number(room)).emit('playerJoined', { playerName })
-      io.to(Number(findroom.users[0].socketId)).emit('playerJoined', { playerName });
+      setTimeout(() => {
+        io.to(Number(room)).emit('playerJoined', { playerName });
+        io.to(findroom.users[0].socketId).emit('playerJoined', { playerName });
+      },1000)
       console.log(`room Joined`, name, room);
     }
   })

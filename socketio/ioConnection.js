@@ -1,5 +1,6 @@
 import chatLogic from "./chatLogic.mjs";
 import gameLogic from "./gameLogic.mjs";
+import playOnlineLogic from "./playOnlineLogic.mjs";
 import roomLogic from "./roomLogic.mjs";
 
 export default function socketHandler(io) {
@@ -10,7 +11,7 @@ export default function socketHandler(io) {
     roomLogic(socket , io);
     gameLogic(socket , io);
     chatLogic(socket , io);
-
+    playOnlineLogic(socket , io);
   })
 
 }
