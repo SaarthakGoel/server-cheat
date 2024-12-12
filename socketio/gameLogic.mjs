@@ -1,6 +1,7 @@
 import GameData from "../modals/GameDataModel.mjs";
 import Room from "../modals/RoomModel.mjs";
 import { findFaceName } from "../utils/findFaceName.mjs";
+import OnlineRoom from "../modals/PlayOnlineModel.mjs";
 
 
 export default function gameLogic(socket, io) {
@@ -8,12 +9,14 @@ export default function gameLogic(socket, io) {
   socket.on('startGame', async ({ currSocketId, currRoom }) => {
     console.log('game started', currRoom, currSocketId);
 
-    const foundRoom = await Room.findOne({ roomId: currRoom });
+    let foundRoom = await Room.findOne({ roomId: currRoom });
     if (!foundRoom) {
-      console.log(`room ${currRoom} not found`);
-      return;
+      foundRoom = await OnlineRoom.findOne({roomId : currRoom});
+      if(!foundRoom){
+        console.log(`room ${currRoom} not found`);
+        return;
+      }
     }
-
     const { playerNo, decks } = foundRoom;
     const cardQuantity = Math.floor(((52 * decks) / playerNo));
     const myCards = Math.ceil(((52 * decks) / playerNo));

@@ -1,4 +1,5 @@
 import GameData from "../modals/GameDataModel.mjs";
+import OnlineRoom from "../modals/PlayOnlineModel.mjs";
 import Room from "../modals/RoomModel.mjs"
 
 export default function roomLogic(socket, io) {
@@ -93,7 +94,11 @@ export default function roomLogic(socket, io) {
     console.log(`User ${socket.id} disconnected`);
 
     // Find the room where the user was part of
-    const foundRoom = await Room.findOne({ 'users.socketId': socket.id });
+    let foundRoom = await Room.findOne({'users.socketId': socket.id });
+
+    if(!foundRoom){
+      foundRoom = await OnlineRoom.findOne({'users.socketId' : socket.id});
+    }
 
     if (foundRoom) {
       // If the room has only one user, delete the room and the game (if it exists)
@@ -103,6 +108,7 @@ export default function roomLogic(socket, io) {
           await GameData.findOneAndDelete({roomId : foundRoom.roomId});
         }
         await Room.findOneAndDelete({ roomId: foundRoom.roomId });
+        await OnlineRoom.findOneAndDelete({roomId : foundRoom.roomId});
         console.log(`Room ${foundRoom.roomId} deleted as it was empty.`);
         return;
       }
