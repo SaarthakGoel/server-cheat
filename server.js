@@ -39,7 +39,7 @@ mongoose.connection.on('error' , (err) => {
 
 const io = new Server(server , {
   cors : {
-    origin : 'http://localhost:3000',  // frontend url in production
+    origin :  true ? 'https://bluff-juthsach.vercel.app/' :'http://localhost:3000',  // frontend url in production
     methods : ['GET' , 'POST']
   }
 });
