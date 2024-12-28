@@ -139,4 +139,16 @@ export default function roomLogic(socket, io) {
       console.log(`Updated room ${foundRoom.roomId} after disconnection.`);
     }
   });
+
+
+socket.on('backToRoom' , async({roomId}) => {
+  console.log('this ran');
+  const foundGameData = await GameData.findOne({roomId : roomId});
+  if(foundGameData){
+    await GameData.findOneAndDelete({roomId : roomId});
+  }
+
+  io.to(Number(roomId)).emit('clearGameSlice');
+})
+
 }

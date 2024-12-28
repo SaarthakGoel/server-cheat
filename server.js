@@ -39,7 +39,7 @@ mongoose.connection.on('error' , (err) => {
 
 const io = new Server(server , {
   cors : {
-    origin : 'https://bluff-juthsach.vercel.app',  // frontend url in production
+    origin : 'http://localhost:3000',  // frontend url in production
     methods : ['GET' , 'POST']
   }
 });
@@ -47,3 +47,4 @@ const io = new Server(server , {
 socketHandler(io);
 
 //http://localhost:3000
+//https://bluff-juthsach.vercel.app

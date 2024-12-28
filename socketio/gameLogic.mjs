@@ -367,7 +367,7 @@ export default function gameLogic(socket, io) {
         }
       );
 
-      const mainMessage = `Wrong Call ! , ${prevPlayer.playerName} was truthful `;
+      const mainMessage = `Wrong Call ! , ${prevPlayer.playerName} was truthfull `;
 
       io.to(currRoom).emit('doubtLogicDone', {
         players: res.players,
